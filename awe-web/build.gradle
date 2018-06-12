@@ -1,0 +1,54 @@
+buildscript {
+    ext {
+        mybatisVersion = '1.3.2'
+    }
+    repositories {
+        mavenLocal()
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://repo.spring.io/libs-release' }
+        // 添加库路径，实际项目中原来此处可能还有别的库，在此位置追加。追加库的位置可能会导致项目报错（找不到某些依赖的错误），
+        // 先插入到最前面不行再往后一行行移动，一个个的试，具体原因还没来得及探究
+        maven { url "https://plugins.gradle.org/m2/"}
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+apply plugin: "war"
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+
+archivesBaseName = 'awe-web'
+
+group = 'com.awe'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = javaVersion
+targetCompatibility = javaVersion
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+repositories {
+    mavenLocal()
+    maven { url 'https://repo.spring.io/libs-snapshot' }
+    maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+    mavenCentral()
+}
+dependencies {
+    compile project(":awe-core")
+
+    compile('org.springframework.boot:spring-boot-starter-web')
+
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
+    testCompile("org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}")
+
+}

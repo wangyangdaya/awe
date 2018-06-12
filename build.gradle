@@ -1,0 +1,140 @@
+buildscript {
+    ext {
+    }
+    repositories {
+        mavenLocal()
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+        // 添加库路径，实际项目中原来此处可能还有别的库，在此位置追加。追加库的位置可能会导致项目报错（找不到某些依赖的错误），
+        // 先插入到最前面不行再往后一行行移动，一个个的试，具体原因还没来得及探究
+        maven { url "https://plugins.gradle.org/m2/" }
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.6")
+    }
+}
+
+// plugins段放置位置有要示，放在buildscript段前面会报错，放到文件最末尾也报错，紧跟buildscript放置OK，其余位置没有偿试
+plugins {
+    // 添加插件信息
+    id "org.sonarqube" version "2.6"
+}
+// 声明插件
+apply plugin: "org.sonarqube"
+
+// 如果项目不存在嵌套的子项目，则以上配置即可
+// 如果项目存在嵌套的子项目，还要添加以下配置
+sonarqube {
+    properties {
+        property "sonar.sourceEncoding", "UTF-8"
+    }
+}
+
+subprojects {
+
+    // 在subprojects段中添加以下块内容
+    sonarqube {
+        properties {
+            // 如果同时存在src/main/java与src/main/test，则要按以下方式设置，如果没有单元测试用例目录test，也可以只填写src
+            property "sonar.sources", "src/main/java"
+        }
+    }
+
+    apply plugin: 'java'
+    apply plugin: 'idea'
+
+    ext {
+        springBootVersion = '2.0.2.RELEASE'
+        javaVersion = 1.8
+        hibernateVersion = '5.2.2.Final'
+        springVersion = "5.0.6.RELEASE"
+        springBootVersion = '2.0.2.RELEASE'
+        junitJupiterVersion = '5.2.0'
+
+    }
+
+    // JVM 版本号要求
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+
+    // java编译的时候缺省状态下会因为中文字符而失败
+    [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF-8'
+
+    compileJava {
+        sourceCompatibility = javaVersion
+        targetCompatibility = javaVersion
+        options.encoding = 'UTF-8'
+    }
+
+    compileTestJava {
+        sourceCompatibility = javaVersion
+        targetCompatibility = javaVersion
+        options.encoding = 'UTF-8'
+    }
+
+    javadoc {
+        options.encoding = 'UTF-8'
+    }
+
+    repositories {
+        mavenLocal()
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://repo.spring.io/libs-milestone' }
+        // 添加库路径，实际项目中原来此处可能还有别的库，在此位置追加。追加库的位置可能会导致项目报错（找不到某些依赖的错误），
+        // 先插入到最前面不行再往后一行行移动，一个个的试，具体原因还没来得及探究
+        maven { url "https://plugins.gradle.org/m2/" }
+        mavenCentral()
+    }
+
+    configurations {
+        // 所有需要忽略的包定义在此
+        all*.exclude module: 'commons-logging'
+    }
+
+    dependencies {
+        // 通用依赖
+        // 依赖maven中不存在的jar
+        compile fileTree(dir: 'libs', include: ['*.jar'])
+        // 测试依赖
+        testCompile("org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}")
+
+        // 在此位置追加以下依赖行
+        // https://mvnrepository.com/artifact/org.sonarsource.scanner.gradle/sonarqube-gradle-plugin
+//        compile group: 'org.sonarsource.scanner.gradle', name: 'sonarqube-gradle-plugin', version: '2.6'
+
+    }
+
+    // 显示当前项目下所有用于 compile 的 jar.
+    task listJars(description: 'Display all compile jars.') << {
+        configurations.compile.each { File file -> println file.name }
+    }
+
+    task createDirs(group: 'help') doLast {
+        sourceSets*.java.srcDirs*.each { it.mkdirs() }
+        sourceSets*.resources.srcDirs*.each { it.mkdirs() }
+    }
+
+    task sourceJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allJava
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+    }
+
+    artifacts {
+        archives javadocJar
+    }
+
+    idea {
+        module {
+            inheritOutputDirs = true
+            downloadSources = true
+            downloadJavadoc = true
+        }
+    }
+}
+
+

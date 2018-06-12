@@ -1,0 +1,42 @@
+buildscript {
+    ext {
+    }
+    repositories {
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://repo.spring.io/libs-release' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+apply plugin: "war"
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'io.spring.dependency-management'
+
+
+archivesBaseName = 'awe-core'
+
+group = 'com.awe'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = javaVersion
+targetCompatibility = javaVersion
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+repositories {
+    mavenLocal()
+    maven { url 'https://repo.spring.io/libs-snapshot' }
+    maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+    mavenCentral()
+}
+dependencies {
+    compile group: 'org.springframework', name: 'spring-core', version: springVersion
+}
