@@ -25,11 +25,9 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BinaryOperator;
-import java.util.function.Predicate;
 
 
 /**
@@ -59,7 +57,7 @@ public class RestController {
     @RequestMapping(value = "/**", method = RequestMethod.POST)
     public RestResponse exec(HttpServletRequest request, @RequestBody(required = false) String requestBody) {
         String uri = request.getRequestURI();
-        int endIndex = uri.lastIndexOf(".") > -1 ? uri.lastIndexOf(".") : uri.length();
+        int endIndex = uri.lastIndexOf('.') > -1 ? uri.lastIndexOf('.') : uri.length();
         String[] params = uri.substring(uri.startsWith("/") ? 1 : 0, endIndex).split("/");
         // service method 匹配请求路径 默认两次路径
         if (params.length != 2) {
@@ -83,7 +81,7 @@ public class RestController {
     @RequestMapping(value = "/view/**", method = RequestMethod.GET)
     public ModelAndView exec(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        return new ModelAndView(uri.substring(1, uri.lastIndexOf(".")));
+        return new ModelAndView(uri.substring(1, uri.lastIndexOf('.')));
     }
 
     private RestResponse execute(String beanName, String service, HttpServletRequest request) {
@@ -213,9 +211,8 @@ public class RestController {
     private Object extractArg(Class<?> parameterType, String parameterName, HttpServletRequest request) {
         Object value = request.getParameter(parameterName);
         // 基本类型
-        if (parameterType.isPrimitive()) {
-            if (Objects.isNull(value))
-                throw new IllegalArgumentException("A null value cannot be assigned to a primitive type");
+        if (parameterType.isPrimitive() && Objects.isNull(value)) {
+            throw new IllegalArgumentException("A null value cannot be assigned to a primitive type");
         }
         value = convert(value, parameterType);
         return value;

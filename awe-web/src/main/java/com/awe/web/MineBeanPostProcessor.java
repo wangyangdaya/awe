@@ -1,7 +1,6 @@
 package com.awe.web;
 
 import com.awe.core.inspection.MethodDescriptor;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -18,9 +17,9 @@ import java.util.Optional;
  * <p>Created by DELL-5490 on 2018/6/9.</p>
  */
 @Component
-public class mineBeanPostProcessor implements BeanPostProcessor {
+public class MineBeanPostProcessor implements BeanPostProcessor {
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+    public Object postProcessBeforeInitialization(Object bean, String beanName) {
         Class<?> clazz = bean.getClass();
         Optional.ofNullable(clazz.getAnnotation(Service.class)).ifPresent(annotation -> ReflectionUtils.doWithLocalMethods(bean.getClass(), method -> processMethod(beanName, method.getName(), method)));
         return bean;
