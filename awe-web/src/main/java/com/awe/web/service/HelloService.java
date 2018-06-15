@@ -14,22 +14,22 @@ import java.util.Arrays;
  */
 @Service
 public class HelloService {
-    private final static Logger logger = LoggerFactory.getLogger(HelloService.class);
+    private static final Logger logger = LoggerFactory.getLogger(HelloService.class);
 
     public void hello() {
         logger.info("Hello World");
     }
 
     public void hello(String name) {
-        logger.info(String.format("Hello:%s", name));
+        logger.info(String.format("Hello on params:%s", name));
     }
 
     public void hello(String name, String world) {
-        logger.info("Hello:{},{}", name, world);
+        logger.info("Hello two params:{},{}", name, world);
     }
 
     public void hello(String name, int age) {
-        logger.info("Hello:{},int{}", name, age);
+        logger.info("Hello two params:{},int{}", name, age);
     }
 
     public void hello(String name, Integer age) {

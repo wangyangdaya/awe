@@ -25,11 +25,11 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Objects;
+import java.security.SecureRandom;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BinaryOperator;
+import java.util.function.Predicate;
 
 
 /**
@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RestController {
 
     private static final Logger logger = LoggerFactory.getLogger(RestController.class);
+    // requestBody
     private static final String REQUEST_BODY_NAME = "request_body_param";
 
     @Autowired
@@ -79,7 +80,7 @@ public class RestController {
      *
      * @return ModelAndView
      */
-    @RequestMapping(value = "/**", method = RequestMethod.GET)
+    @RequestMapping(value = "/view/**", method = RequestMethod.GET)
     public ModelAndView exec(HttpServletRequest request) {
         String uri = request.getRequestURI();
         return new ModelAndView(uri.substring(1, uri.lastIndexOf(".")));
@@ -100,20 +101,26 @@ public class RestController {
 
         Object bean = SpringUtils.getBean(beanName);
 
-        Object[] objects = selectMethod(beanName, service, request);
+        MethodDescriptor method = selectMethod(beanName, service, request);
 
-        if (Objects.isNull(objects)) {
+        if (Objects.isNull(method)) {
             logger.error("{}.{}方法不存在", beanName, service);
             return RestResponse.error(new GeneralException("匹配的方法不存在"));
         }
-        Method method = (Method) objects[0];
-        Object[] params = (Object[]) objects[1];
-        Object result = ReflectionUtils.invokeMethod(method, bean, params);
+        Object result = ReflectionUtils.invokeMethod(method.getMethod(), bean, method.getArgs());
 
         return RestResponse.ok(result);
     }
 
-    private Object[] selectMethod(String beanName, String service, HttpServletRequest request) {
+    /**
+     * 选举方法
+     *
+     * @param beanName
+     * @param service
+     * @param request
+     * @return
+     */
+    private MethodDescriptor selectMethod(String beanName, String service, HttpServletRequest request) {
         ConcurrentHashMap<String, List<MethodDescriptor>> services = MethodDescriptor.SERVICES_DESCRIPTOR.get(beanName);
         if (Objects.isNull(services)) {
             logger.info("请求的实例{}不存在", beanName);
@@ -125,34 +132,30 @@ public class RestController {
             throw new GeneralException("请求资源不存在");
         }
 
-        List<Object[]> methods = new ArrayList<>();
-        methodDescriptors.forEach(m -> {
-            Object[] objects = new Object[2];
-            Class<?>[] paramTypes = m.getParamTypes();
-            Method method = m.getMethod();
-            Object[] params = resolveArgs(method, request);
-            if (params.length == paramTypes.length) {
-                objects[0] = method;
-                objects[1] = params;
-                methods.add(objects);
-            }
-        });
+        // 匹配参数
+        methodDescriptors.forEach(methodDescriptor -> methodDescriptor.setArgs(resolveArgs(methodDescriptor.getMethod(), request)));
 
-        Method method = methodDescriptors.stream().map(MethodDescriptor::getMethod).reduce((x, y) -> {
-            Method m = x;
-            if (x.getParameterTypes().length < y.getParameterTypes().length) {
-                m = y;
+        BinaryOperator<MethodDescriptor> matchMethod = (x, y) -> {
+            Set xs = new HashSet(Arrays.asList(Objects.nonNull(x.getArgs()) ? x.getArgs() : new Object[]{}));
+            Set ys = new HashSet(Arrays.asList(Objects.nonNull(y.getArgs()) ? y.getArgs() : new Object[]{}));
+            MethodDescriptor methodDescriptor = x;
+            if (xs.size() < ys.size()) {
+                methodDescriptor = y;
             }
-            return m;
-        }).get();
-        if (!methods.isEmpty()) {
-            // 默认匹配无参方法
-            if (methods.size() > 1)
-                return methods.get(1);
-            return methods.get(0);
-        } else {
-            return null;
-        }
+            return methodDescriptor;
+        };
+
+        // 选举方法
+        return methodDescriptors.stream()
+                .filter(method -> {
+                    Object[] args = method.getArgs();
+                    if (Objects.nonNull(args)) {
+                        return !Arrays.asList(args).contains(null);
+                    } else {
+                        return true;
+                    }
+                }).reduce(matchMethod)
+                .orElse(methodDescriptors.stream().reduce(matchMethod).orElse(null));
     }
 
     /**
@@ -163,8 +166,6 @@ public class RestController {
      * @return 参数值
      */
     private Object[] resolveArgs(Method method, HttpServletRequest request) {
-        // java 1.8 非-parameters编译得不到参数名称
-//        Parameter[] parameters = method.getParameters();
 
         // 获得参数名称
         Class<?>[] parameterTypes = method.getParameterTypes();
@@ -174,11 +175,6 @@ public class RestController {
 
         // 方法参数
         Object[] args = new Object[parameterTypes.length];
-
-        Enumeration<String> enumeration = request.getParameterNames();
-        while (enumeration.hasMoreElements()) {
-            logger.info(enumeration.nextElement());
-        }
 
         for (int i = 0; i < parameterTypes.length; i++) {
             try {
@@ -209,10 +205,10 @@ public class RestController {
     /**
      * 基本类型参数提取
      *
-     * @param parameterType
-     * @param parameterName
-     * @param request
-     * @return
+     * @param parameterType 参数类型
+     * @param parameterName 参数名称
+     * @param request       请求
+     * @return 匹配参数
      */
     private Object extractArg(Class<?> parameterType, String parameterName, HttpServletRequest request) {
         Object value = request.getParameter(parameterName);
@@ -234,7 +230,6 @@ public class RestController {
      * @return 目标类型数据
      */
     private <T> T convert(Object source, Class<T> targetType) {
-
         return conversionService.convert(source, targetType);
     }
 }

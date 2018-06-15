@@ -17,9 +17,10 @@ public class MethodDescriptor {
 
     protected final Class<?> cls;
     private final Method method;
-    private final String methodName;
     private final Class<?>[] paramTypes;
     private final String[] paramNames;
+    // 方法实际参数
+    private Object[] args;
 
     /**
      * services 方法 service method paramTypes
@@ -38,7 +39,6 @@ public class MethodDescriptor {
         }
         this.cls = method.getDeclaringClass();
         this.method = method;
-        this.methodName = method.getName();
         this.paramTypes = method.getParameterTypes();
         ParameterNameDiscoverer parameterNameDiscoverer = new LocalVariableTableParameterNameDiscoverer();
         String[] parameters = parameterNameDiscoverer.getParameterNames(method);
@@ -47,8 +47,9 @@ public class MethodDescriptor {
 
     /**
      * 维护相应方法声明
-     * @param beanName 服务名
-     * @param service 方法名
+     *
+     * @param beanName   服务名
+     * @param service    方法名
      * @param paramTypes 方法参数
      */
     public static void addMethod(String beanName, String service, Class<?>[] paramTypes) {
@@ -77,8 +78,9 @@ public class MethodDescriptor {
 
     /**
      * 维护相应方法声明
-     * @param beanName 服务名
-     * @param service 方法名
+     *
+     * @param beanName         服务名
+     * @param service          方法名
      * @param methodDescriptor 方法描述
      */
     public static void addMethod(String beanName, String service, MethodDescriptor methodDescriptor) {
@@ -108,5 +110,13 @@ public class MethodDescriptor {
 
     public Method getMethod() {
         return method;
+    }
+
+    public Object[] getArgs() {
+        return args;
+    }
+
+    public void setArgs(Object[] args) {
+        this.args = args;
     }
 }

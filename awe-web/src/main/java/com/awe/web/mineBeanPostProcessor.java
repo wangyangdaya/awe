@@ -30,7 +30,6 @@ public class mineBeanPostProcessor implements BeanPostProcessor {
         // 只读取PUBLIC方法
         if (Modifier.isPublic(method.getModifiers())) {
             MethodDescriptor methodDescriptor = new MethodDescriptor(method);
-//            MethodDescriptor.addMethod(beanName, service, method.getParameterTypes());
             MethodDescriptor.addMethod(beanName, service, methodDescriptor);
         }
     }
