@@ -46,4 +46,5 @@ public abstract class ObjectUtils {
     public static String toString(final Object obj, final String nullStr) {
         return obj == null ? nullStr : obj.toString();
     }
+
 }

@@ -3,10 +3,13 @@ package com.awe.web.controller;
 import com.awe.core.inspection.MethodDescriptor;
 import com.awe.core.throwable.GeneralException;
 import com.awe.web.core.RestResponse;
+import com.awe.web.properties.WebProperties;
+import com.awe.web.service.FileService;
 import com.awe.web.util.SpringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.core.convert.support.GenericConversionService;
@@ -43,8 +46,30 @@ public class RestController {
     // requestBody
     private static final String REQUEST_BODY_NAME = "request_body_param";
 
+    @Value("${server.servlet.context-path}")
+    private String contextPath;
+
     @Autowired
     private GenericConversionService conversionService;
+
+    @Autowired
+    private WebProperties webProperties;
+
+    @Autowired
+    private FileService fileService;
+
+    @ResponseBody
+    @RequestMapping(value = "/upload", method = RequestMethod.POST)
+    public RestResponse upload(MultipartFile file, HttpServletRequest request) {
+        String md5 = request.getParameter("md5");
+        int chunk = Integer.parseInt(Objects.isNull(request.getParameter("chunk"))? "0" : request.getParameter("chunk"));
+        int chunks = Integer.parseInt(Objects.isNull(request.getParameter("chunks"))? "0" : request.getParameter("chunks"));;
+        // 文件大小
+        Long size = Long.valueOf(request.getParameter("size"));
+
+        fileService.upload(file, md5, chunks, chunk, size);
+        return RestResponse.ok("上传成功");
+    }
 
     /**
      * POST 请求处理
@@ -54,9 +79,10 @@ public class RestController {
      * @return restResponse
      */
     @ResponseBody
-    @RequestMapping(value = "/**", method = RequestMethod.POST)
+    @RequestMapping(value = "${awt.web.restfulPrefix}/**", method = RequestMethod.POST)
     public RestResponse exec(HttpServletRequest request, @RequestBody(required = false) String requestBody) {
         String uri = request.getRequestURI();
+        uri = uri.substring(contextPath.length() + webProperties.getRestfulPrefix().length());
         int endIndex = uri.lastIndexOf('.') > -1 ? uri.lastIndexOf('.') : uri.length();
         String[] params = uri.substring(uri.startsWith("/") ? 1 : 0, endIndex).split("/");
         // service method 匹配请求路径 默认两次路径
@@ -81,7 +107,13 @@ public class RestController {
     @RequestMapping(value = "/view/**", method = RequestMethod.GET)
     public ModelAndView exec(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        return new ModelAndView(uri.substring(1, uri.lastIndexOf('.')));
+        int lastIndex = uri.lastIndexOf('.');
+        String view;
+        if (lastIndex > 0)
+            view = uri.substring(contextPath.length() + 6, lastIndex);
+        else
+            view = uri.substring(contextPath.length() + 6);
+        return new ModelAndView(view);
     }
 
     private RestResponse execute(String beanName, String service, HttpServletRequest request) {

@@ -32,7 +32,6 @@ sonarqube {
 
 subprojects {
 
-    // 在subprojects段中添加以下块内容
     sonarqube {
         properties {
             // 如果同时存在src/main/java与src/main/test，则要按以下方式设置，如果没有单元测试用例目录test，也可以只填写src
@@ -73,7 +72,10 @@ subprojects {
     }
 
     javadoc {
-        options.encoding = 'UTF-8'
+        options{
+            encoding = 'UTF-8'
+            charSet = 'UTF-8'
+        }
     }
 
     repositories {
@@ -104,28 +106,33 @@ subprojects {
 
     }
 
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.compilerArgs << "-Xlint:unchecked"
+    }
+
     // 显示当前项目下所有用于 compile 的 jar.
-    task listJars(description: 'Display all compile jars.') << {
-        configurations.compile.each { File file -> println file.name }
-    }
+//    task listJars(description: 'Display all compile jars.') << {
+//        configurations.compile.each { File file -> println file.name }
+//    }
 
-    task createDirs(group: 'help') doLast {
-        sourceSets*.java.srcDirs*.each { it.mkdirs() }
-        sourceSets*.resources.srcDirs*.each { it.mkdirs() }
-    }
+//    task createDirs(group: 'help') doLast {
+//        sourceSets*.java.srcDirs*.each { it.mkdirs() }
+//        sourceSets*.resources.srcDirs*.each { it.mkdirs() }
+//    }
 
-    task sourceJar(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allJava
-    }
+//    task sourceJar(type: Jar) {
+//        classifier = 'sources'
+//        from sourceSets.main.allJava
+//    }
 
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier = 'javadoc'
-        from javadoc.destinationDir
-    }
+//    task javadocJar(type: Jar, dependsOn: javadoc) {
+//        classifier = 'javadoc'
+//        from javadoc.destinationDir
+//    }
 
     artifacts {
-        archives javadocJar
+//        archives javadocJar
     }
 
     idea {
