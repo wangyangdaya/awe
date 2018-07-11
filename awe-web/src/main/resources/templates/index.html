@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Index - Demo</title>
+    <link rel="stylesheet" th:href="@{/bootstrap-3.3.7-dist/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/webuploader/webuploader.css}"/>
+</head>
+<body>
+<div style="text-align: center; width: 50%; margin: 0 auto;">
+    <div id="file-list" class="uploader-list"></div>
+    <div style="padding-top: 20px">
+        <div id="picker">选择文件</div>
+        <button id="upload" type="button" class="btn btn-primary" onclick="upload()">开始上传</button>
+    </div>
+</div>
+</body>
+<script th:src="@{/js/jquery-3.3.1.min.js}"></script>
+<script th:src="@{/webuploader/webuploader.min.js}"></script>
+<script type="text/javascript" th:inline="javascript">
+    /*<![CDATA[*/
+    contextPath = /*[[@{/}]]*/ '';
+    let chunkSize = 50 * 1024
+
+    WebUploader.Uploader.register({
+        'before-send-file': 'beforeSendFile',
+        'before-send': 'beforeSend'
+    }, {
+        beforeSendFile: (file) => {
+            console.log('beforeSendFile')
+            // Deferred对象在钩子回掉函数中经常要用到，用来处理需要等待的异步操作。
+            var task = new $.Deferred();
+            // 根据文件内容来查询MD5
+            uploader.md5File(file).progress(function (percentage) {
+                // 及时显示进度
+                console.log('计算md5进度:', percentage);
+                getProgressBar(file, percentage, "MD5", "MD5");
+            }).then(function (value) {
+                console.log('md5 result:', value);
+                file.md5 = value;
+                // 进行md5判断
+                $.post(
+                    contextPath + 'rest' + '/fileService/checkFile',
+                    {md5: file.md5},
+                    function (response) {
+                        console.log(response.data);
+                        file.uploadChunks = response.data.completes;
+                        if (response.data.chunks !== -1 && (response.data.chunks == response.data.completes.length)) {
+                            file.complete = true
+                            console.log(file.complete)
+                            getProgressBar(file, 1, "FILE", "上传进度");
+                            return
+                        }
+                        task.resolve();
+                    })
+            });
+            return $.when(task)
+        },
+        beforeSend: function (block) {
+            console.log("block")
+            var task = new $.Deferred();
+            var file = block.file;
+            var uploadChunks = file.uploadChunks;
+            var blockChunk = block.chunk;
+            console.log("当前分块：" + blockChunk);
+            console.log("uploadChunks:" + uploadChunks);
+            if (uploadChunks !== null && uploadChunks !== undefined && uploadChunks !== '') {
+                // 是否已经上传
+                var flag = false;
+                for (var i = 0; i < uploadChunks.length; i++) {
+                    if (blockChunk == uploadChunks[i]) {
+                        console.log(file.name + ":" + blockChunk + ":已经上传。");
+                        flag = true;
+                        break;
+                    }
+                }
+                if (flag) {
+                    task.reject();
+                } else {
+                    task.resolve();
+                }
+            } else {
+                task.resolve();
+            }
+            return $.when(task);
+        }
+    })
+
+    const uploader = WebUploader.create({
+        pick: {
+            id: '#picker',
+            label: '点击选择文件'
+        },
+        formData: {
+            md5: '',
+            chunkSize: chunkSize
+        },
+        swf: 'webuploader/Uploader.swf',
+        chunked: true,
+        chunkSize: chunkSize, // 字节 1M分块
+        threads: 3,
+        server: contextPath + 'upload',
+        auto: false,
+    })
+
+    // 当有文件被添加进队列的时候
+    uploader.on('fileQueued', function (file) {
+        console.log("fileQueued");
+        $('#file-list').append('<div id="' + file.id + '" class="item">' +
+            '<h4 class="info">' + file.name + '</h4>' +
+            '<p class="state">等待上传...</p>' +
+            '</div>');
+    });
+
+    //当某个文件的分块在发送前触发，主要用来询问是否要添加附带参数，大文件在开起分片上传的前提下此事件可能会触发多次。
+    uploader.onUploadBeforeSend = function (obj, data) {
+        console.log("onUploadBeforeSend");
+        var file = obj.file;
+        data.md5 = file.md5 || '';
+    };
+
+    // 上传中
+    uploader.on('uploadProgress', function (file, percentage) {
+        console.log("upload...")
+        getProgressBar(file, percentage, "FILE", "上传进度");
+    })
+
+    // 生成进度条封装方法
+    function getProgressBar(file, percentage, id_Prefix, titleName) {
+        var $li = $('#' + file.id), $percent = $li.find('#' + id_Prefix + '-progress-bar');
+        // 避免重复创建
+        if (!$percent.length) {
+            $percent = $('<div id="' + id_Prefix + '-progress" class="progress progress-striped active">' +
+                '<div id="' + id_Prefix + '-progress-bar" class="progress-bar" role="progressbar" style="width: 0%">' +
+                '</div>' +
+                '</div>'
+            ).appendTo($li).find('#' + id_Prefix + '-progress-bar');
+        }
+        var progressPercentage = percentage * 100 + '%';
+        $percent.css('width', progressPercentage);
+        $percent.html(titleName + ':' + progressPercentage);
+    }
+
+    // 文件上传
+    const upload = () => {
+        uploader.upload()
+    }
+    // 上传返回结果
+    uploader.on('uploadSuccess', function (file) {
+        var text = '已上传';
+        if (file.pass) {
+            text = "文件妙传功能，文件已上传。"
+        }
+        $('#' + file.id).find('p.state').text(text);
+    })
+
+    uploader.on('uploadError', function (file) {
+        $('#' + file.id).find('p.state').text('上传出错');
+    })
+
+    // 隐藏进度条
+    function fadeOutProgress(file, id_Prefix) {
+        $('#' + file.id).find('#' + id_Prefix + '-progress').fadeOut();
+    }
+
+    uploader.on('uploadComplete', function (file) {
+        // 隐藏进度条
+        // fadeOutProgress(file, 'MD5');
+        // fadeOutProgress(file, 'FILE');
+    })
+    /*]]>*/
+</script>
+</html>

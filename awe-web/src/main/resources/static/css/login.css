@@ -1,0 +1,14 @@
+.form{background: rgba(255,255,255,0.2);width:400px;margin:120px auto;
+    box-shadow: 1px 1px 15px #888888;
+    position: absolute;
+    right: 160px;
+    top: 10%;
+    color: #fff;
+}
+/*阴影*/
+.fa{display: inline-block;top: 27px;left: 6px;position: relative;color: #ccc;}
+input[type="text"],input[type="password"]{padding-left:26px;}
+.checkbox{padding-left:21px;}
+.form-control-feedback {
+    top: 20px;
+}
