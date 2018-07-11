@@ -66,4 +66,8 @@ dependencies {
     // sqlite
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.23.1'
 
+
+    compile group: 'io.netty', name: 'netty-all', version: '5.0.0.Alpha2'
+
+
 }
