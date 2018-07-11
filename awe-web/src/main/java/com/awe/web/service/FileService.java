@@ -1,5 +1,7 @@
 package com.awe.web.service;
 
+import com.awe.core.storage.FastDFSStorage;
+import com.awe.core.storage.FileStorage;
 import com.awe.core.throwable.GeneralException;
 import com.awe.core.util.SqliteUtils;
 import org.slf4j.Logger;
@@ -9,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
 import java.nio.MappedByteBuffer;
@@ -20,7 +21,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 
 /**
  * description 文件上传
@@ -73,7 +76,7 @@ public class FileService {
      * @param chunk 文件片
      * @return
      */
-    public String upload(MultipartFile file, String md5, int chunks, int chunk ,long size) {
+    public String upload(MultipartFile file, String md5, int chunks, int chunk, long size) {
         // 创建文件md5 文件夹
 //        String filePath = fileBasePath + md5;
 //        File uploadDir = new File(filePath);
@@ -81,6 +84,8 @@ public class FileService {
 //        if (!uploadDir.exists() && !uploadDir.isDirectory()) {
 //            uploadDir.mkdirs();
 //        }
+
+
         File upload = new File(fileBasePath, file.getOriginalFilename());
 
         // 随机流
@@ -146,11 +151,7 @@ public class FileService {
                 throw new GeneralException("上传失败");
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return "上传成功";
@@ -158,6 +159,9 @@ public class FileService {
 
     /**
      * clean mappedByteBuffer
+     * describe
+     * <p> A mapped byte buffer and the file mapping that it represents remain
+     * valid until the buffer itself is garbage-collected.
      *
      * @param mappedByteBuffer buffer
      */
@@ -167,6 +171,15 @@ public class FileService {
                 return;
             }
 
+            // unmap
+//        try {
+//            Method method = FileChannelImpl.class.getDeclaredMethod("unmap", MappedByteBuffer.class);
+//            method.setAccessible(true);
+//            method.invoke(FileChannelImpl.class, mappedByteBuffer);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+
             mappedByteBuffer.force();
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
@@ -174,8 +187,7 @@ public class FileService {
                     try {
                         Method getCleanerMethod = mappedByteBuffer.getClass().getMethod("cleaner", new Class[0]);
                         getCleanerMethod.setAccessible(true);
-                        sun.misc.Cleaner cleaner = (sun.misc.Cleaner) getCleanerMethod.invoke(mappedByteBuffer,
-                                new Object[0]);
+                        sun.misc.Cleaner cleaner = (sun.misc.Cleaner) getCleanerMethod.invoke(mappedByteBuffer, new Object[0]);
                         cleaner.clean();
                     } catch (Exception e) {
                         logger.error("clean MappedByteBuffer error!!!", e);
@@ -188,5 +200,7 @@ public class FileService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
     }
 }
