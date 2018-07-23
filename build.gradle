@@ -43,11 +43,10 @@ subprojects {
     apply plugin: 'idea'
 
     ext {
-        springBootVersion = '2.0.2.RELEASE'
+        springBootVersion = '2.0.3.RELEASE'
         javaVersion = 1.8
         hibernateVersion = '5.2.2.Final'
         springVersion = "5.0.6.RELEASE"
-        springBootVersion = '2.0.2.RELEASE'
         junitJupiterVersion = '5.2.0'
 
     }
@@ -72,7 +71,7 @@ subprojects {
     }
 
     javadoc {
-        options{
+        options {
             encoding = 'UTF-8'
             charSet = 'UTF-8'
         }
@@ -116,10 +115,10 @@ subprojects {
 //        configurations.compile.each { File file -> println file.name }
 //    }
 
-//    task createDirs(group: 'help') doLast {
-//        sourceSets*.java.srcDirs*.each { it.mkdirs() }
-//        sourceSets*.resources.srcDirs*.each { it.mkdirs() }
-//    }
+    task createDirs(group: 'help') doLast {
+        sourceSets*.java.srcDirs*.each { it.mkdirs() }
+        sourceSets*.resources.srcDirs*.each { it.mkdirs() }
+    }
 
 //    task sourceJar(type: Jar) {
 //        classifier = 'sources'

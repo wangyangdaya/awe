@@ -1,2 +1,4 @@
 rootProject.name = 'awe'
 include 'awe-core', 'awe-web'
+include 'awe-net'
+
