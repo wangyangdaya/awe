@@ -11,7 +11,6 @@ import com.baomidou.mybatisplus.plugins.PaginationInterceptor;
 import com.baomidou.mybatisplus.plugins.PerformanceInterceptor;
 import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import org.apache.ibatis.plugin.Interceptor;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -65,25 +64,6 @@ public class MybatisPlusConfig {
         return multipleDataSource;
     }
 
-    @Bean
-    public MybatisSqlSessionFactoryBean sqlSessionFactory() throws Exception {
-        MybatisSqlSessionFactoryBean sqlSessionFactory = new MybatisSqlSessionFactoryBean();
-        sqlSessionFactory.setDataSource(multipleDataSource(readDataSource(), writeDataSource()));
-//        sqlSessionFactory.setMapperLocations(new PathMatchingResourcePatternResolver().getResources("classpath:/mapper/*/*Mapper.xml"));
-
-        MybatisConfiguration configuration = new MybatisConfiguration();
-        //configuration.setDefaultScriptingLanguage(MybatisXMLLanguageDriver.class);
-        configuration.setJdbcTypeForNull(JdbcType.NULL);
-        configuration.setMapUnderscoreToCamelCase(true);
-        configuration.setCacheEnabled(false);
-        sqlSessionFactory.setConfiguration(configuration);
-        sqlSessionFactory.setPlugins(
-//                new Interceptor[]{new PerformanceInterceptor(), new OptimisticLockerInterceptor(), new PaginationInterceptor()}
-                new Interceptor[]{new DataSourceInterceptor()}
-        );
-        return sqlSessionFactory;
-    }
-
     /**
      * mybatis-plus SQL执行效率插件[生产环境可以关闭]
      * 设置 dev test 环境开启
@@ -93,7 +73,6 @@ public class MybatisPlusConfig {
     public PerformanceInterceptor performanceInterceptor() {
         return new PerformanceInterceptor().setFormat(true).setMaxTime(100);
     }
-
 
     /**
      * 分页插件
@@ -110,4 +89,31 @@ public class MybatisPlusConfig {
     public OptimisticLockerInterceptor optimisticLockerInterceptor() {
         return new OptimisticLockerInterceptor();
     }
+
+
+    @Bean
+    public MybatisSqlSessionFactoryBean sqlSessionFactory(PaginationInterceptor paginationInterceptor,
+                                                          PerformanceInterceptor performanceInterceptor,
+                                                          OptimisticLockerInterceptor optimisticLockerInterceptor) throws Exception {
+        MybatisSqlSessionFactoryBean sqlSessionFactory = new MybatisSqlSessionFactoryBean();
+        sqlSessionFactory.setDataSource(multipleDataSource(readDataSource(), writeDataSource()));
+//        sqlSessionFactory.setMapperLocations(new PathMatchingResourcePatternResolver().getResources("classpath:/mapper/*/*Mapper.xml"));
+
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        //configuration.setDefaultScriptingLanguage(MybatisXMLLanguageDriver.class);
+        configuration.setJdbcTypeForNull(JdbcType.NULL);
+        configuration.setMapUnderscoreToCamelCase(true);
+        configuration.setCacheEnabled(false);
+        sqlSessionFactory.setConfiguration(configuration);
+        sqlSessionFactory.setPlugins(
+                new Interceptor[]{
+                        paginationInterceptor,
+                        optimisticLockerInterceptor,
+                        performanceInterceptor,
+                        new DataSourceInterceptor()}
+        );
+        return sqlSessionFactory;
+    }
+
+
 }

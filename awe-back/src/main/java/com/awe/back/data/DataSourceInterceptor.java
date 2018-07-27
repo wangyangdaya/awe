@@ -40,9 +40,9 @@ public class DataSourceInterceptor implements Interceptor {
     public Object intercept(Invocation invocation) throws Throwable {
         boolean synchronizationActive = TransactionSynchronizationManager.isSynchronizationActive();
         if (!synchronizationActive) {
+            DataSourceEnum dataSourceEnum;
             Object[] objects = invocation.getArgs();
             MappedStatement ms = (MappedStatement) objects[0];
-            DataSourceEnum dataSourceEnum;
             if ((dataSourceEnum = cacheMap.get(ms.getId())) == null) {
                 // 读方法
                 if (ms.getSqlCommandType().equals(SqlCommandType.SELECT)) {
@@ -61,9 +61,10 @@ public class DataSourceInterceptor implements Interceptor {
                 } else {
                     dataSourceEnum = DataSourceEnum.WRITE;
                 }
+                logger.info("method[{}] use [{}] Strategy, SqlCommandType [{}]..", ms.getId(), dataSourceEnum.name(), ms.getSqlCommandType().name());
+                cacheMap.put(ms.getId(), dataSourceEnum);
             }
-            logger.info("method[{}] use [{}] Strategy, SqlCommandType [{}]..", ms.getId(), dataSourceEnum.name(), ms.getSqlCommandType().name());
-            cacheMap.put(ms.getId(), dataSourceEnum);
+
             DataSourceContextHolder.setDataSource(dataSourceEnum.getValue());
         }
         return invocation.proceed();

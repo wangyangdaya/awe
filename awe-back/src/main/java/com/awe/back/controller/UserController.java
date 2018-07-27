@@ -26,11 +26,11 @@ public class UserController {
 
     @PostMapping("/add")
     public String add(@RequestBody UserVo user) {
-        User stu = new User();
-        stu.setName(user.getName());
-        stu.setAge(user.getAge());
-        stu.setFullName(user.getFullName());
-        return userService.insert(stu) ? "添加成功" : "添加失败";
+        User u = new User();
+        u.setName(user.getName());
+        u.setAge(user.getAge());
+        u.setFullName(user.getFullName());
+        return userService.insert(u) ? "添加成功" : "添加失败";
     }
 
     @DeleteMapping("/delete/{id}")
@@ -51,7 +51,7 @@ public class UserController {
 
     @GetMapping("/listPage")
     public Page<User> listPage() {
-        Page<User> page = new Page<>(0, 10);
+        Page<User> page = new Page<>(1, 10);
         return userService.selectPage(page);
     }
 }
