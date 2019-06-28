@@ -9,6 +9,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,14 @@ public class DiscardClient {
                             ch.pipeline()
                                     .addLast(new MessageDecoder(1 << 20, 10, 4))
                                     .addLast(new MessageEncoder())
-                                    .addLast(new clientHandler());
+                                    .addLast(new clientHandler())
+                                    /**
+                                     * readerIdleTime 是指在这个参数指定的时间内若没有发生read事件，则发送一条信息维持心跳。0表示禁用该功能
+                                     * writerIdleTime 是指在这个参数指定的时间内若没有发生write事件，则发送一条信息维持心跳。0表示禁用该功能
+                                     * allIdleTime是指在这个参数指定的时间内若没有发生write或者read事件,则发送一条信息维持心跳。0表示禁用该功能
+                                     * TimeUnit是指前面三个变量的时间单位
+                                     */
+                                    .addLast(new IdleStateHandler(0, 0, 10, TimeUnit.SECONDS));
 //                            .addLast(new LineBasedFrameDecoder(1024))
 //                            .addLast(new StringDecoder())
 //                            .addLast(new StringEncoder())

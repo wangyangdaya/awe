@@ -12,6 +12,9 @@ public class Message {
 
     private final Charset charset = Charset.forName("UTF-8");
 
+    /**
+     * 校验用固定值
+     */
     private byte magicType;
 
     /**
